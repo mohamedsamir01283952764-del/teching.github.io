@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة المهندس محمد سمير زكي | للإلكترونيات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f172a; /* كحلي غامق بروفيشنال */
+            --accent: #3b82f6;  /* أزرق إلكتروني */
+            --bg: #f8fafc;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; transition: 0.3s; scroll-behavior: smooth; }
+        body { background: var(--bg); margin: 0; color: #1e293b; overflow-x: hidden; }
+
+        header {
+            background: var(--primary); color: white; padding: 1rem 5%;
+            position: sticky; top: 0; z-index: 1000;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .logo { font-size: 1.4rem; font-weight: 900; color: #60a5fa; }
+        nav a { color: white; text-decoration: none; margin-right: 1.2rem; font-weight: 700; font-size: 0.95rem; }
+
+        .hero {
+            background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            color: white; padding: 6rem 5% 8rem; text-align: center;
+        }
+        .hero h1 { font-size: 2.8rem; margin: 0; letter-spacing: -1px; }
+        .hero p { font-size: 1.2rem; opacity: 0.9; margin-top: 10px; }
+
+        .container { max-width: 1000px; margin: -60px auto 50px; padding: 0 20px; }
+
+        .section-card {
+            background: var(--white); padding: 2.5rem; border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin-bottom: 2.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .section-title { 
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 1.5rem; color: var(--primary); font-size: 1.5rem;
+        }
+        .section-title::before { content: ""; width: 6px; height: 30px; background: var(--accent); border-radius: 10px; }
+
+		/* تحسين شبكة الكروت */
+		.grid-exams { 
+			display: grid; 
+			grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+			gap: 1.5rem; 
+			align-items: stretch; /* عشان كل الكروت تاخد نفس الارتفاع */
+		}
+
+		/* تحسين الكارد الفردي */
+		.exam-card {
+			background: #f1f5f9; 
+			padding: 1.5rem; 
+			border-radius: 1rem; 
+			text-align: center;
+			border: 2px solid transparent;
+			
+			/* السر هنا: تحويل الكارد نفسه لـ Flex */
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between; /* توزيع العناصر بحيث الزرار ينزل تحت */
+		}
+
+		.exam-card h3 {
+			margin-top: 0;
+			min-height: 50px; /* توحيد مساحة العنوان */
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.exam-card p {
+			flex-grow: 1; /* بيخلي النص ياخد كل المساحة المتاحة ويزق الزرار لتحت */
+			margin-bottom: 1.5rem;
+			font-size: 0.95rem;
+			color: #64748b;
+		}
+
+		.btn-action {
+			display: block; 
+			background: var(--accent); 
+			color: white;
+			padding: 12px 20px; 
+			text-decoration: none; 
+			border-radius: 8px;
+			font-weight: 700;
+			margin-top: auto; /* تأكيد دفع الزرار لأسفل الكارد */
+			width: 100%;
+		}
+
+        .info-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+        .info-item { background: #f8fafc; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; }
+        .info-item h4 { margin: 0 0 5px 0; color: var(--accent); }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.8rem; }
+            header { flex-direction: column; padding: 1rem; }
+            nav { margin-top: 10px; }
+            .section-card { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">م/ محمد سمير زكي</div>
+    <nav>
+        <a href="#about">عن المستر</a>
+        <a href="#exams">الامتحانات</a>
+        <a href="#notes">المذكرات</a>
+        <a href="#contact">العنوان</a>
+    </nav>
+</header>
+
+<section class="hero">
+    <h1>منصة الإلكترونيات المتقدمة 2026</h1>
+    <p>هندسة الإلكترونيات بأسلوب عملي ومبسط</p>
+</section>
+
+<div class="container">
+    
+    <div id="about" class="section-card">
+        <div class="section-title">عن المحاضر</div>
+        <p style="font-size: 1.1rem; line-height: 1.8;">
+            المهندس <b>محمد سمير زكي</b>، متخصص في تدريس علوم الإلكترونيات والدوائر المتكاملة. 
+            تجمع هذه المنصة بين الشرح النظري الممنهج والتطبيق العملي، لتأهيل الطلاب لفهم عميق للمكونات الإلكترونية وبرمجتها.
+        </p>
+    </div>
+
+    <div id="exams" class="section-card">
+        <div class="section-title">مركز الاختبارات الإلكترونية</div>
+        <div class="grid-exams">
+            <div class="exam-card">
+                <h3> اختبار في الفيزياء العامة</h3>
+                <p>اختبار شامل لمحتويات المنهج لطلبة الدبلوم.</p>
+                <a href="quiz.html" class="btn-action">ابدأ الاختبار الآن</a>
+            </div>
+            <div class="exam-card" style="opacity: 0.6;">
+                <h3>اختبار في وحدات الجدارات</h3>
+                <p>قريباً ... اختبار في وحدات الجدارات لطلبة فني اجهزة الكترونية الصف الثالث</p>
+                <a href="#" class="btn-action" style="background:#94a3b8;">مغلق حالياً</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="contact" class="section-card">
+        <div class="section-title">بيانات التواصل والمقر</div>
+        <div class="info-box">
+            <div class="info-item">
+                <h4>📍 العنوان</h4>
+                <p>القليوبية - بنها - بجوار مصنع السبيلي</p>
+            </div>
+            <div class="info-item">
+                <h4>📞 رقم الموبايل</h4>
+                <p dir="ltr">01225309375</p>
+            </div>
+            <div class="info-item">
+                <h4>⏰ المواعيد</h4>
+                <p>السبت والثلاثاء (4:00 عصراً)</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<footer style="text-align: center; padding: 2rem; color: #94a3b8; font-size: 0.9rem;">
+    جميع الحقوق محفوظة &copy; م/ محمد سمير زكي 2026
+</footer>
+
+</body>
+</html>
