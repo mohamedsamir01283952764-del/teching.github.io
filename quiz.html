@@ -244,7 +244,7 @@ window.onload = function() {
             </div>`;
     }
 };
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwKDDFLUW6jlvSit4hqeDh8liepIrUZ8WzcZYJvW7C9eVtLz_4hOIAs2YfHWAWwE2lX/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaXF2rC8IXI8z6KJpjTJ7QhpigFInWxZYZvR4n89HmJzUV3M-XO8GOWsvRJCePItIc/exec";
 const EXAM_DURATION_MINUTES = 30;
 
 const rawQuestions = [
@@ -481,17 +481,30 @@ function handleNext() {
 
 function jumpTo(i) { currentStep = i; loadQuestion(); }
 
-function saveResultToSheet(name, score, wrongList) {
+function saveResultToSheet(name, score) {
+    // تحديد الحالة بناءً على الدرجة (مثلاً لو أكبر من 50% ناجح)
+    const numericScore = parseInt(score);
+    const status = numericScore >= 50 ? "ناجح" : "راسب";
+    const timestamp = new Date().toLocaleString('ar-EG');
+
+    const formData = new URLSearchParams();
+    formData.append('name', name);
+    formData.append('score', score);
+    formData.append('status', status);
+    formData.append('time', timestamp);
+
+    // الإرسال السريع لضمان التسجيل
+    if (navigator.sendBeacon) {
+        navigator.sendBeacon(SCRIPT_URL, formData);
+    } else {
+        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' });
+    }
+
     const statusMsg = document.getElementById('status-msg');
-    const wrongAnswersText = wrongList.length > 0 ? wrongList.map((q, i) => `${i+1}- ${q}`).join(" | ") : "ممتاز";
-    fetch(SCRIPT_URL, {
-        method: 'POST', mode: 'no-cors', cache: 'no-cache',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, score: score, wrongAnswers: wrongAnswersText })
-    }).then(() => {
-        statusMsg.innerText = "تم حفظ النتيجة بنجاح ✅";
+    if (statusMsg) {
+        statusMsg.innerText = "✅ تم تسجيل درجتك بنجاح في كشف الطلاب";
         statusMsg.style.color = "var(--success)";
-    });
+    }
 }
 
 function finishQuiz(isForce) {
