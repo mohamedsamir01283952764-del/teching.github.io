@@ -208,7 +208,7 @@
         <div id="quiz-ui" class="quiz-container">
             <div class="timer-box">
                 <span> المتبقي:</span>
-                <span id="timer-display">15:00</span>
+                <span id="timer-display">30:00</span>
             </div>
             <div class="question-card">
                 <span id="q-type" class="q-type-badge"></span>
@@ -245,8 +245,8 @@ window.onload = function() {
     }
 };
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaXF2rC8IXI8z6KJpjTJ7QhpigFInWxZYZvR4n89HmJzUV3M-XO8GOWsvRJCePItIc/exec";
-const EXAM_DURATION_MINUTES = 15;
-
+const EXAM_DURATION_MINUTES = 30;
+const CURRENT_EXAM_NAME = "فيزياء عامة";
 const rawQuestions = [
     // --- 1. قسم الصح والخطأ (40 سؤال) ---
     {cat: "صح أم خطأ", q: "الشحنات الكهربائية المتشابهة تتجاذب، والمختلفة تتنافر.", o: ["صح", "خطأ"], c: "خطأ"},
@@ -481,42 +481,45 @@ function handleNext() {
 
 function jumpTo(i) { currentStep = i; loadQuestion(); }
 
+// --- 1. الدالة المصلحة لإرسال البيانات ---
 function saveResultToSheet(name, score) {
-    // تحديد الحالة بناءً على الدرجة (مثلاً لو أكبر من 50% ناجح)
     const numericScore = parseInt(score);
     const status = numericScore >= 50 ? "ناجح" : "راسب";
     const timestamp = new Date().toLocaleString('ar-EG');
 
-    const formData = new URLSearchParams();
-    formData.append('name', name);
-    formData.append('score', score);
-    formData.append('status', status);
-    formData.append('time', timestamp);
+    // استخدام FormData هو الطريقة "الرسمية" والأسرع لإرسال البيانات للخلفية
+    const blobData = new FormData();
+    blobData.append('name', name);
+    blobData.append('score', numericScore);
+    blobData.append('examName', CURRENT_EXAM_NAME);
+    blobData.append('status', status);
+    blobData.append('time', timestamp);
 
-    // الإرسال السريع لضمان التسجيل
-    if (navigator.sendBeacon) {
-        navigator.sendBeacon(SCRIPT_URL, formData);
-    } else {
-        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' });
-    }
+    // تحويل FormData إلى Blob لجعلها متوافقة تماماً مع sendBeacon وبدون تأخير
+    const blob = new Blob([new URLSearchParams(blobData).toString()], {
+        type: 'application/x-www-form-urlencoded'
+    });
 
+    // إرسال لحظي في الخلفية (حتى لو قفل الطالب الصفحة النتيجة هتوصل)
+    navigator.sendBeacon(SCRIPT_URL, blob);
+
+    // إظهار الرسالة للطالب فوراً بدون انتظار رد السيرفر
     const statusMsg = document.getElementById('status-msg');
     if (statusMsg) {
-        statusMsg.innerText = "✅ تم تسجيل درجتك بنجاح في كشف الطلاب";
+        statusMsg.innerText = `✅ تم تسجيل درجتك في كشف (${CURRENT_EXAM_NAME})`;
         statusMsg.style.color = "var(--success)";
     }
 }
-
+// --- 2. الدالة المصلحة لإنهاء الاختبار ---
 function finishQuiz(isForce) {
-    // التأكد من حل كل الأسئلة لو الإغلاق يدوي
     if(!isForce && answersLog.filter(x => x !== undefined).length < quizData.length) {
         alert("يرجى الإجابة على جميع الأسئلة أولاً!");
         return;
     }
-	// --- الختم على المتصفح لمنع الدخول مرة أخرى ---
-    localStorage.setItem("exam_finished", "true");
 
+    localStorage.setItem("exam_finished", "true");
     clearInterval(timerInterval);
+    
     document.getElementById('quiz-ui').style.display = 'none';
     document.getElementById('result-screen').style.display = 'block';
     
@@ -524,13 +527,9 @@ function finishQuiz(isForce) {
     document.getElementById('final-percent').innerText = percent + "%";
     document.getElementById('student-display').innerText = `الطالب: ${studentName}`;
     
-    let wrongList = [];
-    answersLog.forEach((log, index) => {
-        if (log && !log.isCorrect) wrongList.push(quizData[index].q);
-    });
-    saveResultToSheet(studentName, percent, wrongList);
+    // استدعاء الدالة بشكل صحيح بالاسم والدرجة فقط
+    saveResultToSheet(studentName, percent);
 }
-
 </script>
 </body>
 </html>
