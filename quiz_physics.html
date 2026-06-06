@@ -1,0 +1,526 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الفيزياء الاحترافية 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb; --secondary: #64748b; --success: #059669;
+            --error: #dc2626; --bg: #f8fafc; --card-bg: #ffffff; --text-main: #1e293b;
+        }
+        * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; transition: all 0.2s ease; }
+        body { background: var(--bg); margin: 0; color: var(--text-main); height: 100vh; overflow: hidden; }
+
+        #login-screen {
+            position: fixed; inset: 0; background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .login-card {
+            background: white; padding: 2.5rem; border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 90%; max-width: 400px; text-align: center;
+        }
+        .login-card input {
+            width: 100%; padding: 12px; margin: 1.5rem 0; border: 2px solid #e2e8f0;
+            border-radius: 0.75rem; font-size: 1rem; text-align: center; outline: none;
+        }
+
+        #main-app { display: none; height: 100vh; grid-template-columns: 300px 1fr; }
+
+		/* تعديلات السايد بار */
+		/* السايد بار في الكمبيوتر */
+		.sidebar { 
+			background: var(--card-bg); 
+			border-left: 1px solid #e2e8f0; 
+			display: flex; 
+			flex-direction: column; 
+			height: 100vh; /* لازم نثبت الطول بطول الشاشة */
+			overflow: hidden; /* نمنع السكرول الخارجي */
+		}
+
+		.sidebar-header { 
+			padding: 1.2rem; 
+			background: var(--primary); 
+			color: white; 
+			font-weight: 700; 
+			text-align: center;
+			flex-shrink: 0; /* نمنع الهيدر إنه ينضغط */
+		}
+
+		.nav-scroll { 
+			flex: 1; 
+			overflow-y: auto !important; /* تفعيل السكرول الطولي */
+			padding: 1rem;
+			scrollbar-width: thin; /* شكل سكرول شيك في فايرفوكس */
+			scrollbar-color: var(--primary) transparent;
+		}
+
+		/* شكل السكرول بار في جوجل كروم (Webkit) */
+		.nav-scroll::-webkit-scrollbar {
+			width: 6px;
+		}
+		.nav-scroll::-webkit-scrollbar-thumb {
+			background-color: var(--primary);
+			border-radius: 10px;
+		}
+		.nav-scroll::-webkit-scrollbar-track {
+			background: transparent;
+		}
+
+		.nav-grid { 
+			display: grid; 
+			grid-template-columns: repeat(4, 1fr); 
+			gap: 0.5rem;
+			padding-bottom: 20px; /* مساحة تحت آخر سؤال */
+		}
+        .q-dot {
+            aspect-ratio: 1; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: 500; background: #fff;
+        }
+        .q-dot.active { border: 2px solid var(--primary); color: var(--primary); background: #eff6ff; }
+        .q-dot.correct { background: var(--success) !important; color: white; border: none; }
+        .q-dot.wrong { background: var(--error) !important; color: white; border: none; }
+
+        .timer-box {
+            background: #fee2e2; color: #dc2626; padding: 10px 20px;
+            border-radius: 50px; font-weight: 800; font-size: 1.2rem;
+            margin-bottom: 1.5rem; border: 2px solid #fecaca;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; max-width: 300px;
+        }
+
+        .content { flex: 1; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; }
+        .quiz-container { width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; }
+        
+        .question-card {
+            background: white; border-radius: 1.25rem; padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem; width: 100%;
+        }
+        .q-type-badge { display: inline-block; padding: 4px 12px; background: #dbeafe; color: var(--primary); border-radius: 20px; font-size: 0.8rem; margin-bottom: 1rem; }
+        .q-text { font-size: 1.3rem; font-weight: 700; line-height: 1.5; margin-bottom: 2rem; }
+
+        .options-list { display: grid; gap: 0.75rem; }
+        .opt-btn {
+            width: 100%; padding: 1rem 1.5rem; text-align: right; border: 2px solid #f1f5f9;
+            border-radius: 0.75rem; background: #fff; cursor: pointer; font-size: 1rem;
+        }
+        .opt-btn.correct { background: #dcfce7 !important; border-color: var(--success) !important; color: #065f46; font-weight: bold; }
+        .opt-btn.wrong { background: #fee2e2 !important; border-color: var(--error) !important; color: #991b1b; }
+
+        .action-btn { width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 0.75rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+        .action-btn:disabled { background: #cbd5e1; cursor: not-allowed; opacity: 0.7; }
+
+	/* ========================================= */
+    /* التنسيق النهائي والمضمون للموبايل */
+    /* ========================================= */
+    @media (max-width: 768px) {
+        body { 
+            overflow-y: auto !important; 
+            height: auto !important; 
+        }
+
+        #main-app { 
+            display: flex !important; 
+            flex-direction: column !important; /* ترتيب عمودي إجباري */
+            height: auto !important;
+            grid-template-columns: 1fr !important; /* إلغاء نظام الأعمدة */
+        }
+
+        /* 1. منطقة الأسئلة (تظهر أولاً) */
+        .content { 
+            order: 1 !important; 
+            width: 100% !important;
+            padding: 1rem !important;
+            flex: none !important;
+        }
+
+        /* 2. منطقة خريطة الأسئلة (تظهر ثانياً تحت الأسئلة) */
+        .sidebar { 
+            order: 2 !important; 
+            width: 100% !important; 
+            border-left: none !important; 
+            background: transparent !important; 
+            padding: 1rem !important;
+            display: block !important;
+            height: auto !important;
+        }
+
+        .nav-scroll { 
+            background: #ffffff !important; 
+            border-radius: 1.5rem !important; 
+            padding: 1.5rem !important; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .sidebar-header { 
+            background: none !important; 
+            color: var(--primary) !important; 
+            text-align: center !important; 
+            padding: 0 0 1rem 0 !important; 
+            font-size: 1.2rem !important;
+            display: block !important;
+        }
+
+        .nav-grid { 
+            display: grid !important; 
+            grid-template-columns: repeat(5, 1fr) !important; /* 5 مربعات في الصف */
+            gap: 10px !important; 
+        }
+
+        .q-dot { 
+            width: 100% !important; 
+            aspect-ratio: 1 !important; 
+            font-size: 1rem !important; 
+            border-radius: 0.75rem !important; 
+        }
+
+        .timer-box { 
+            width: 100% !important; 
+            max-width: none !important;
+        }
+
+        .quiz-container {
+            max-width: 100% !important;
+        }
+    }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-card">
+        <h2 style="color: var(--primary); margin-top: 0;">اختبار الفيزياء 2026</h2>
+        <input type="text" id="user-name" placeholder="أدخل اسمك الثلاثي">
+        <button class="action-btn" onclick="initQuiz()">ابدأ الآن</button>
+    </div>
+</div>
+
+<div id="main-app">
+    <div class="sidebar">
+        <div class="sidebar-header">خريطة الأسئلة</div>
+        <div class="nav-scroll"><div id="nav-grid" class="nav-grid"></div></div>
+    </div>
+
+    <div class="content">
+        <div id="quiz-ui" class="quiz-container">
+            <div class="timer-box">
+                <span> المتبقي:</span>
+                <span id="timer-display">99999:--</span>
+            </div>
+            <div class="question-card">
+                <span id="q-type" class="q-type-badge"></span>
+                <div id="q-text" class="q-text"></div>
+                <div id="options-area" class="options-list"></div>
+            </div>
+            <button id="next-btn" class="action-btn" disabled onclick="handleNext()">السؤال التالي</button>
+            <p id="alert-msg" style="color: #64748b; font-size: 0.85rem; margin-top: 10px; display: none;">⚠️ يجب الإجابة على جميع الأسئلة لتتمكن من الإنهاء.</p>
+        </div>
+
+        <div id="result-screen" class="question-card" style="display:none; text-align:center; padding:3rem;">
+            <h2>انتهى الاختبار!</h2>
+            <p id="student-display"></p>
+            <div class="score-box" id="final-percent" style="font-size:4rem; color:var(--primary); font-weight:800;">0%</div>
+            <p id="status-msg">جاري حفظ النتيجة...</p>
+            <button class="action-btn" onclick="location.reload()">إعادة المحاولة</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 1. التفتيش أول ما الصفحة تفتح (قبل أي حاجة)
+//window.onload = function() {
+//  if (localStorage.getItem("exam_finished") === "true") {
+//    document.body.innerHTML = `
+//      <div style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; font-family:Tajawal; text-align:center; padding:20px; background:#f8fafc;">
+//        <div style="background:white; padding:2rem; border-radius:1.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.1); border-top:5px solid #dc2626;">
+//               <h1 style="color:#dc2626; margin-bottom:10px;">⚠️ غير مسموح بالدخول</h1>
+//               <p style="font-size:1.2rem; color:#1e293b;">لقد قمت بتأدية هذا الاختبار مسبقاً من هذا الجهاز.</p>
+//               <hr style="border:0; border-top:1px solid #e2e8f0; margin:20px 0;">
+//                <b style="color:#2563eb; font-size:1.3rem;">مستر / محمد سمير زكي</b>
+//            </div>
+//        </div>`;
+// }
+//};
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaXF2rC8IXI8z6KJpjTJ7QhpigFInWxZYZvR4n89HmJzUV3M-XO8GOWsvRJCePItIc/exec";
+const EXAM_DURATION_MINUTES = 99999;
+const CURRENT_EXAM_NAME = "فيزياء عامة";
+const rawQuestions =[
+    // ==========================================
+    // أولاً: أسئلة اختيار من متعدد (25 سؤالاً)
+    // ==========================================
+    {cat: "اختيار من متعدد", q: "عند توصيل عدة مكثفات على التوازي فإن السعة الكلية تساوي:", o: ["سعة أي مكثف", "أقل من سعة أي مكثف", "أكبر من سعة أي مكثف"], c: "أكبر من سعة أي مكثف"},
+    {cat: "اختيار من متعدد", q: "يمكن حساب شدة المجال الكهربي E من العلاقة:", o: ["K q / d", "K q / d²", "q1 q2 / d²"], c: "K q / d²"},
+    {cat: "اختيار من متعدد", q: "تقاس المقاومة النوعية لموصل بوحدة:", o: ["أوم . متر", "أوم / متر", "فولت / أمبير"], c: "أوم . متر"},
+    {cat: "اختيار من متعدد", q: "يستخدم الفولتميتر في قياس:", o: ["شدة التيار", "المقاومة الكهربية", "القوة الدافعة الكهربية وفرق الجهد"], c: "القوة الدافعة الكهربية وفرق الجهد"},
+    {cat: "اختيار من متعدد", q: "إذا زاد طول موصل إلى الضعف فإن مقاومته الكهربية:", o: ["تقل إلى النصف", "تزداد إلى الضعف", "تظل ثابتة"], c: "تزداد إلى الضعف"},
+    {cat: "اختيار من متعدد", q: "أول من أثبت أن الذرة معظمها فراغ هو العالم:", o: ["طومسون", "رذرفورد", "بور"], c: "رذرفورد"},
+    {cat: "اختيار من متعدد", q: "الجهاز المستخدم لمعرفة الحالة الكهربية للجسم هو:", o: ["الأميتر", "الفولتميتر", "الكشاف الكهربي"], c: "الكشاف الكهربي"},
+    {cat: "اختيار من متعدد", q: "وحدة قياس السعة الكهربية هي:", o: ["الأوم", "الجول", "الفاراد"], c: "الفاراد"},
+    {cat: "اختيار من متعدد", q: "مقاومتان كهربيتان قيمة كل منهما 2 أوم، عند توصيلهما على التوازي تكون المقاومة المكافئة:", o: ["4 أوم", "2 أوم", "1 أوم"], c: "1 أوم"},
+    {cat: "اختيار من متعدد", q: "يقاس الفيض المغناطيسي بوحدة:", o: ["التسلا", "الوبر", "الأوم"], c: "الوبر"},
+    {cat: "اختيار من متعدد", q: "تتميز أشعة الليزر بالشدة وهذا يعني أن فوتوناتها:", o: ["ذات طول موجي واحد", "مترابطة ولا تخضع لقانون التربيع العكسي", "عديدة الأطوال الموجية"], c: "مترابطة ولا تخضع لقانون التربيع العكسي"},
+    {cat: "اختيار من متعدد", q: "عند تطعيم بلورة السيليكون بعنصر خماسي مثل الزرنيخ تتكون بلورة من النوع:", o: ["الموجب (p-type)", "السالب (n-type)", "المتعادل تماماً"], c: "السالب (n-type)"},
+    {cat: "اختيار من متعدد", q: "محصلة كثافة الفيض المغناطيسي عند نقطة التعادل تساوي:", o: ["أكبر ما يمكن", "أقل ما يمكن", "صفر"], c: "صفر"},
+    {cat: "اختيار من متعدد", q: "وحدة قياس شدة المجال الكهربي هي:", o: ["نيوتن / كولوم", "جول / كولوم", "أوم . متر"], c: "نيوتن / كولوم"},
+    {cat: "اختيار من متعدد", q: "إذا زادت المسافة التي يقطعها شعاع الليزر إلى الضعف فإن شدة الإشعاع:", o: ["تقل للنصف", "تقل للربع", "تظل ثابتة"], c: "تظل ثابتة"},
+    {cat: "اختيار من متعدد", q: "تستخدم البوابة المنطقية OR للحصول على خرج يساوي 1 عندما يكون:", o: ["جميع المدخلات 0", "أحد المدخلات على الأقل 1", "جميع المدخلات 1 فقط"], c: "أحد المدخلات على الأقل 1"},
+    {cat: "اختيار من متعدد", q: "تستخدم أشعة ذات تردد عالٍ جداً للكشف عن كسور العظام وهي:", o: ["أشعة الليزر", "الأشعة السينية", "الأشعة تحت الحمراء"], c: "الأشعة السينية"},
+    {cat: "اختيار من متعدد", q: "حاملات الشحنة السائدة في البلورة الموجبة هي:", o: ["الإلكترونات", "الفجوات", "الأيونات السالبة"], c: "الفجوات"},
+    {cat: "اختيار من متعدد", q: "الريوستات (المقاومة المتغيرة) يستخدم في الدوائر الكهربية لـ:", o: ["قياس الشحنة", "التحكم في شدة التيار", "زيادة الجهد"], c: "التحكم في شدة التيار"},
+    {cat: "اختيار من متعدد", q: "كولوم / ثانية هي وحدة مكافئة لـ:", o: ["الفولت", "الأمبير", "الأوم"], c: "الأمبير"},
+    {cat: "اختيار من متعدد", q: "يقاس الجهد الكهربي بوحدة:", o: ["الأمبير", "الفولت", "الكولوم"], c: "الفولت"},
+    {cat: "اختيار من متعدد", q: "جهاز الأميتر يوصل في الدوائر الكهربية على:", o: ["التوالي", "التوازي", "التوالي والتوازي معاً"], c: "التوالي"},
+    {cat: "اختيار من متعدد", q: "مكثفان السعة الكهربية لكل منهما 3 فاراد، عند توصيلهما على التوازي تكون السعة الكلية:", o: ["1.5 فاراد", "3 فاراد", "6 فاراد"], c: "6 فاراد"},
+    {cat: "اختيار من متعدد", q: "عند توصيل المكثفات على التوالي فإن السعة الكلية لهما:", o: ["تزداد", "تقل", "تظل كما هي"], c: "تقل"},
+    {cat: "اختيار من متعدد", q: "قاعدة أمبير لليد اليمنى تستخدم لتحديد اتجاه:", o: ["المجال المغناطيسي لسلك مستقيم", "القوة المغناطيسية", "التيار التأثيري"], c: "المجال المغناطيسي لسلك مستقيم"},
+
+    // ==========================================
+    // ثانياً: أسئلة صح وخطأ (25 سؤالاً)
+    // ==========================================
+    {cat: "صح وخطأ", q: "عند توصيل عدة مكثفات على التوازي، فإن السعة الكلية تكون أكبر من سعة أي مكثف.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "تقاس المقاومة النوعية لموصل بوحدة أوم/متر.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "يستخدم جهاز الفولتميتر في الدائرة الكهربية لقياس شدة التيار المار.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "المقاومة النوعية مادة الموصل تزداد إذا زاد طول السلك إلى الضعف.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "عند دلك ساق من الزجاج بواسطة قطعة من الحرير، تصبح الساق مشحونة بشحنة موجبة.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "تتميز أشعة الليزر بالنقاء الطيفي، مما يعني أنها أحادية الطول الموجي.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "العالم طومسون هو أول من أثبت أن الذرة معظمها فراغ من خلال تجربة رقاقة الذهب.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "تقل كثافة الفيض المغناطيسي عند مركز ملف دائري يمر به تيار كهربائي كلما زاد نصف قطر الملف.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "تتعامل الإلكترونيات الرقمية مع الكميات الطبيعية مباشرة وتحولها إلى إشارات متصلة.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "تتحرك خطوط المجال الكهربائي خارجة من الشحنة الموجبة وداخلة إلى الشحنة السالبة.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "عند مرور تيار كهربائي في نفس الاتجاه في سلكين متوازيين تنشأ بينهما قوة تنافر.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "تستخدم الأشعة السينية في دراسة التركيب البلوري للمواد نظرًا لقدرتها على الحيود.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "عند توصيل المكثفات على التوالي، فإن السعة الكلية تقل وتكون أقل من سعة أي مكثف.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "حاملات الشحنة السائدة في البلورة من النوع الموجب (p-type) هي الإلكترونات الحرة.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "تستخدم الوصلة الثنائية في تقويم التيار المتردد.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "تتميز أشعة الليزر بأن فوتوناتها مترابطة زمانياً ومكانياً.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "الفيض المغناطيسي يقاس بوحدة التسلا.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "قاعدة فلمنج لليد اليسرى تستخدم لتحديد اتجاه المجال المغناطيسي الناشئ عن تيار مستقيم.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "مقلوب المقاومة النوعية يعطي التوصيلية الكهربية للمادة.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "تزداد مقاومة الموصل عند زيادة مساحة مقطعه وثبوت طوله.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "الجول هو وحدة قياس الشغل المبذول والطاقة.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "نقطة التعادل بين شحنتين متشابهتين تكون محصلة كثافة الفيض أو المجال عندها مساوية للصفر.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "لا تخضع أشعة الليزر لقانون التربيـع العكسي في الضوء.", o: ["صواب", "خطأ"], c: "صواب"},
+    {cat: "صح وخطأ", q: "تستخدم أنبوبة كولدج للحصول على أشعة الليزر عالية الطاقة.", o: ["صواب", "خطأ"], c: "خطأ"},
+    {cat: "صح وخطأ", q: "الذرة في حالتها العادية تكون متعادلة كهربياً لتساوي عدد البروتونات الموجبة مع الالكترونات السالبة.", o: ["صواب", "خطأ"], c: "صواب"},
+
+    // ==========================================
+    // ثالثاً: أسئلة المصطلح العلمي (25 سؤالاً)
+    // ==========================================
+    {cat: "المصطلح العلمي", q: "النسبة بين فرق الجهد الكهربي إلى شدة التيار المار في الموصل.", c: "المقاومة الكهربية"},
+    {cat: "المصطلح العلمي", q: "مواد لا تسمح بمرور التيار الكهربي خلالها لعدم وفرة إلكترونات حرة.", c: "المواد العازلة"},
+    {cat: "المصطلح العلمي", q: "نموذج يصور الذرة على أنها كرة مصمتة موجبة الشحنة تنغمس فيها الإلكترونات السالبة.", c: "نموذج ذرة طومسون"},
+    {cat: "المصطلح العلمي", q: "مواد تتميز ذراتها بوفرة الإلكترونات الحرة وتسمح بمرور التيار الكهربائي بسهولة.", c: "المواد الموصلة"},
+    {cat: "المصطلح العلمي", q: "العدد الكلي لخطوط الفيض المغناطيسي التي تمر عمودياً على مساحة معينة.", c: "الفيض المغناطيسي"},
+    {cat: "المصطلح العلمي", q: "الحيز أو المنطقة المحيطة بالشحنة الكهربية في جميع الاتجاهات وتظهر فيها آثار القوة الكهربية.", c: "المجال الكهربي"},
+    {cat: "المصطلح العلمي", q: "أجهزة تتعامل مع الكميات الطبيعية وتحولها إلى إشارات كهربية متصلة.", c: "الإلكترونيات التناظرية"},
+    {cat: "المصطلح العلمي", q: "مقدار الشغل المبذول مقدراً بالجول لنقل شحنة كهربائية مقدارها 1 كولوم بين نقطتين.", c: "فرق الجهد الكهربي"},
+    {cat: "المصطلح العلمي", q: "الانبعاث الناتج من الذرة نتيجة عودة الإلكترون من مستوى أعلى إلى مستوى أدنى بعد انتهاء فترة العمر تلقائياً.", c: "الانبعاث التلقائي"},
+    {cat: "المصطلح العلمي", q: "تضخيم وتكبير شدة الضوء بواسطة الانبعاث المستحث.", c: "الليزر"},
+    {cat: "المصطلح العلمي", q: "أشعة ذات تردد عالٍ وقدرة كبيرة على النفاذ تستخدم في الكشف عن كسور العظام.", c: "الأشعة السينية"},
+    {cat: "المصطلح العلمي", q: "الحالة الكهربية للموصل والتي يتوقف عليها انتقال الكهربية منه أو إليه عند توصيله بموصل آخر.", c: "الجهد الكهربي للموصل"},
+    {cat: "المصطلح العلمي", q: "مقلوب المقاومة النوعية لمادة الموصل.", c: "التوصيلية الكهربية"},
+    {cat: "المصطلح العلمي", q: "مقاومة موصل طوله 1 متر ومساحة مقطعه 1 متر مربع عند درجة حرارة معينة.", c: "المقاومة النوعية"},
+    {cat: "المصطلح العلمي", q: "مقاومة موصل يمر به تيار شدته 1 أمبير عندما يكون فرق الجهد بين طرفيه 1 فولت.", c: "الأوم"},
+    {cat: "المصطلح العلمي", q: "فرق الجهد بين قطبي المصدر الكهربي في حالة عدم سحب تيار من الدائرة (الدائرة مفتوحة).", c: "القوة الدافعة الكهربية للمصدر"},
+    {cat: "المصطلح العلمي", q: "نسبة الشحنة الكهربية المتراكمة على أحد لوحي المكثف إلى فرق الجهد بين اللوحين.", c: "السعة الكهربية للمكثف"},
+    {cat: "المصطلح العلمي", q: "وحدة قياس السعة الكهربية وتكافئ كولوم / فولت.", c: "الفاراد"},
+    {cat: "المصطلح العلمي", q: "القوة الناشئة بين شحنتين كهربيتين وتتناسب طردياً مع حاصل ضربهما وعكسياً مع مربع المسافة بينهما.", c: "قانون كولوم"},
+    {cat: "المصطلح العلمي", q: "جهاز يستخدم للكشف عن الحالة الكهربية للجسم والتعرف على نوع شحنته.", c: "الكشاف الكهربي"},
+    {cat: "المصطلح العلمي", q: "مقاومة يمكن تغيير قيمتها للتحكم في شدة التيار المار في الدائرة الكهربية.", c: "الريوستات"},
+    {cat: "المصطلح العلمي", q: "أداة مصنوعة من شبه موصل نقي مطعم تستخدم لتقويم التيار المتردد وتسمح بمرور التيار في اتجاه واحد.", c: "الوصلة الثنائية"},
+    {cat: "المصطلح العلمي", q: "كثافة الفيض المغناطيسي التي تولد قوة مقدارها 1 نيوتن على سلك طوله 1 متر يمر به تيار 1 أمبير وعمودي على المجال.", c: "التسلا"},
+    {cat: "المصطلح العلمي", q: "انبعاث فوتون من الذرة المثارة نتيجة تأثرها بفوتون خارجي له نفس طاقته قبل انتهاء فترة العمر.", c: "الانبعاث المستحث"},
+    {cat: "المصطلح العلمي", q: "جهاز يستخدم لإنتاج الأشعة السينية بصفة مستمرة عن طريق اصطدام الإلكترونات بهدف من التنجستين.", c: "أنبوبة كولدج"},
+
+    // ==========================================
+    // رابعاً: أسئلة أكمل (25 سؤالاً)
+    // ==========================================
+    {cat: "أكمل", q: "حاملات الشحنة السائدة في البلورة الموجبة هي ........ بينما في البلورة السالبة هي ........", c: "الفجوات / الإلكترونات الحرة"},
+    {cat: "أكمل", q: "من طرق الشحن الكهربي للجسم: الشحن بالدلك، والشحن بـ ........ والشحن بـ ........", c: "اللمس / التأثير"},
+    {cat: "أكمل", q: "من العوامل التي تتوقف عليها المقاومة الكهربية للموصل: طول السلك، و ........ و ........", c: "مساحة المقطع / نوع المادة"},
+    {cat: "أكمل", q: "يقاس الجهد الكهربي بوحدة ........ بينما تقاس المقاومة النوعية بوحدة ........", c: "الفولت / أوم . متر"},
+    {cat: "أكمل", q: "تقاس شدة التيار الكهربي بواسطة جهاز ........ والذي يوصل في الدائرة على ........", c: "الأميتر / التوالي"},
+    {cat: "أكمل", q: "مكثفان السعة الكهربية لكل منهما 3 فاراد، عند توصيلهما على التوازي فإن السعة الكلية تساوي ........ فاراد، وعند توصيلهما على التوالي تكون ........ فاراد.", c: "6 / 1.5"},
+    {cat: "أكمل", q: "عند دلك ساق من الزجاج بواسطة قطعة من الحرير تصبح هذه الساق مشحونة بشحنة ........", c: "موجبة"},
+    {cat: "أكمل", q: "يقاس الفيض المغناطيسي بوحدة ........ بينما تقاس كثافة الفيض المغناطيسي بوحدة ........", c: "الوبر / التسلا"},
+    {cat: "أكمل", q: "تتميز أشعة الليزر بـ ........ الطيفي والترابط و ........ والشدة.", c: "النقاء / توازي الحزمة"},
+    {cat: "أكمل", q: "تستخدم الأشعة السينية في دراسة التركيب ........ للمواد نظرًا لقدرتها على ........", c: "البلوري / الحيود"},
+    {cat: "أكمل", q: "تستخدم بوابة ........ كبوابة عاكسة (NOT) بينما بوابة ........ تعطي خرجاً 1 إذا كان أي من المدخلات 1.", c: "العاكس / الاختيار (OR)"},
+    {cat: "أكمل", q: "إذا زاد طول السلك إلى الضعف وقلت مساحة مقطعه إلى النصف فإن مقاومته تزداد إلى ........ أمثالها.", c: "أربعة"},
+    {cat: "أكمل", q: "محصلة كثافة الفيض المغناطيسي عند نقطة المنتصف بين سلكين يمر بهما تياران متساويان وفي نفس الاتجاه تساوي ........", c: "صفر"},
+    {cat: "أكمل", q: "تقاس شدة المجال الكهربي بوحدة ........ وهي تكافئ فولت/متر.", c: "نيوتن / كولوم"},
+    {cat: "أكمل", q: "جهاز يستخدم للتحكم في شدة التيار عن طريق تغيير المقاومة يسمى ........", c: "الريوستات"},
+    {cat: "أكمل", q: "يتكون الكشاف الكهربي من قرص معدني وساق معدنية تنتهي بـ ........", c: "ورقتين ذهبيتين"},
+    {cat: "أكمل", q: "تعتمد فكرة عمل الليزر على الانبعاث ........ وهو انبعاث فوتونات مترابطة.", c: "المستحث"},
+    {cat: "أكمل", q: "عند توصيل عدة مقاومات على التوالي فإن المقاومة المكافئة تساوي ........ المقاومات.", c: "مجموع"},
+    {cat: "أكمل", q: "عند توصيل عدة مقاومات على التوازي فإن المقاومة المكافئة تكون ........ من أقل مقاومة.", c: "أصغر"},
+    {cat: "أكمل", q: "الذرة في حالتها العادية تكون ........ كهربياً.", c: "متعادلة"},
+    {cat: "أكمل", q: "أثبت العالم رذرفورد أن معظم حجم الذرة ........ وليس مصمتاً.", c: "فراغ"},
+    {cat: "أكمل", q: "وحدة قياس السعة الكهربية هي ........ وتكافئ كولوم لكل فولت.", c: "الفاراد"},
+    {cat: "أكمل", q: "تستخدم قاعدة اليد اليسرى لفلمنج لتحديد اتجاه ........ المؤثرة على سلك يمر به تيار وعمودي على مجال.", c: "القوة المغناطيسية"},
+    {cat: "أكمل", q: "تستخدم أنبوبة كولدج للحصول على الأشعة ........", c: "السينية"},
+    {cat: "أكمل", q: "يتناسب التيار المار في موصل تناسباً ........ مع فرق الجهد عند ثبوت درجة الحرارة وفقاً لقانون أوم.", c: "طردياً"}
+];
+
+let quizData = [], currentStep = 0, userScore = 0, answersLog = [], studentName = "";
+let timeLeft = EXAM_DURATION_MINUTES * 60;
+let timerInterval;
+
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function startTimer() {
+    const display = document.getElementById('timer-display');
+    timerInterval = setInterval(() => {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        display.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            alert("⚠️ انتهى الوقت! يتم الآن إرسال إجاباتك أوتوماتيكياً.");
+            finishQuiz(true); // تمرير true ليعرف السيستم أنه إنهاء إجباري بسبب الوقت
+        }
+        timeLeft--;
+    }, 1000);
+}
+
+function initQuiz() {
+    studentName = document.getElementById('user-name').value.trim();
+    if(studentName.length < 3) return alert("يرجى كتابة الاسم الثلاثي");
+    quizData = shuffleArray([...rawQuestions]);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'grid';
+    renderNav();
+    loadQuestion();
+    startTimer();
+}
+
+function renderNav() {
+    const grid = document.getElementById('nav-grid');
+    grid.innerHTML = quizData.map((_, i) => `<div class="q-dot" id="dot-${i}" onclick="jumpTo(${i})">${i + 1}</div>`).join('');
+}
+
+function loadQuestion() {
+    const data = quizData[currentStep];
+    document.getElementById('q-type').innerText = data.cat || "سؤال"; 
+    document.getElementById('q-text').innerText = data.q;
+    const area = document.getElementById('options-area');
+    area.innerHTML = "";
+    
+    const hasAnswered = answersLog[currentStep] !== undefined;
+    const isLast = currentStep === quizData.length - 1;
+    const totalAnswered = answersLog.filter(x => x !== undefined).length;
+    const allDone = totalAnswered === quizData.length;
+
+    // تحديث زر التالي/إنهاء
+    const nextBtn = document.getElementById('next-btn');
+    const alertMsg = document.getElementById('alert-msg');
+
+    if (isLast) {
+        nextBtn.innerText = "إنهاء الاختبار";
+        nextBtn.disabled = !allDone; // لا يعمل إلا إذا تم حل الكل
+        alertMsg.style.display = allDone ? "none" : "block";
+    } else {
+        nextBtn.innerText = "السؤال التالي";
+        nextBtn.disabled = !hasAnswered;
+        alertMsg.style.display = "none";
+    }
+
+    if (!data.shuffledOptions) data.shuffledOptions = shuffleArray([...data.o]);
+    data.shuffledOptions.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn';
+        btn.innerText = opt;
+        if (hasAnswered) {
+            btn.disabled = true;
+            if (opt === data.c) btn.classList.add('correct');
+            if (opt === answersLog[currentStep].selected && opt !== data.c) btn.classList.add('wrong');
+        } else {
+            btn.onclick = () => selectOption(opt);
+        }
+        area.appendChild(btn);
+    });
+
+    document.querySelectorAll('.q-dot').forEach(d => d.classList.remove('active'));
+    document.getElementById(`dot-${currentStep}`).classList.add('active');
+}
+
+function selectOption(val) {
+    if(answersLog[currentStep] !== undefined) return;
+    const isCorrect = val === quizData[currentStep].c;
+    if(isCorrect) userScore++;
+    answersLog[currentStep] = { selected: val, isCorrect: isCorrect };
+    document.getElementById(`dot-${currentStep}`).classList.add(isCorrect ? 'correct' : 'wrong');
+    loadQuestion(); 
+}
+
+function handleNext() {
+    if(currentStep < quizData.length - 1) {
+        currentStep++; loadQuestion();
+    } else {
+        finishQuiz(false);
+    }
+}
+
+function jumpTo(i) { currentStep = i; loadQuestion(); }
+
+// --- 1. الدالة المصلحة لإرسال البيانات ---
+function saveResultToSheet(name, score) {
+    const numericScore = parseInt(score);
+    const status = numericScore >= 50 ? "ناجح" : "راسب";
+    const timestamp = new Date().toLocaleString('ar-EG');
+
+    // استخدام FormData هو الطريقة "الرسمية" والأسرع لإرسال البيانات للخلفية
+    const blobData = new FormData();
+    blobData.append('name', name);
+    blobData.append('score', numericScore);
+    blobData.append('examName', CURRENT_EXAM_NAME);
+    blobData.append('status', status);
+    blobData.append('time', timestamp);
+
+    // تحويل FormData إلى Blob لجعلها متوافقة تماماً مع sendBeacon وبدون تأخير
+    const blob = new Blob([new URLSearchParams(blobData).toString()], {
+        type: 'application/x-www-form-urlencoded'
+    });
+
+    // إرسال لحظي في الخلفية (حتى لو قفل الطالب الصفحة النتيجة هتوصل)
+    navigator.sendBeacon(SCRIPT_URL, blob);
+
+    // إظهار الرسالة للطالب فوراً بدون انتظار رد السيرفر
+    const statusMsg = document.getElementById('status-msg');
+    if (statusMsg) {
+        statusMsg.innerText = `✅ تم تسجيل درجتك في كشف (${CURRENT_EXAM_NAME})`;
+        statusMsg.style.color = "var(--success)";
+    }
+}
+// --- 2. الدالة المصلحة لإنهاء الاختبار ---
+function finishQuiz(isForce) {
+    if(!isForce && answersLog.filter(x => x !== undefined).length < quizData.length) {
+        alert("يرجى الإجابة على جميع الأسئلة أولاً!");
+        return;
+    }
+
+    //localStorage.setItem("exam_finished", "true");
+    clearInterval(timerInterval);
+    
+    document.getElementById('quiz-ui').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
+    
+    const percent = Math.round((userScore / quizData.length) * 100);
+    document.getElementById('final-percent').innerText = percent + "%";
+    document.getElementById('student-display').innerText = `الطالب: ${studentName}`;
+    
+    // استدعاء الدالة بشكل صحيح بالاسم والدرجة فقط
+    saveResultToSheet(studentName, percent);
+}
+</script>
+</body>
+</html>
