@@ -1,0 +1,518 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>امتحان تقييم معرفـى</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb; --secondary: #64748b; --success: #059669;
+            --error: #dc2626; --bg: #f8fafc; --card-bg: #ffffff; --text-main: #1e293b;
+        }
+        * { box-sizing: border-box; font-family: 'Tajawal', sans-serif; transition: all 0.2s ease; }
+        body { background: var(--bg); margin: 0; color: var(--text-main); height: 100vh; overflow: hidden; }
+
+        #login-screen {
+            position: fixed; inset: 0; background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .login-card {
+            background: white; padding: 2.5rem; border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 90%; max-width: 400px; text-align: center;
+        }
+        .login-card input {
+            width: 100%; padding: 12px; margin: 1.5rem 0; border: 2px solid #e2e8f0;
+            border-radius: 0.75rem; font-size: 1rem; text-align: center; outline: none;
+        }
+
+        #main-app { display: none; height: 100vh; grid-template-columns: 300px 1fr; }
+
+		/* تعديلات السايد بار */
+		/* السايد بار في الكمبيوتر */
+		.sidebar { 
+			background: var(--card-bg); 
+			border-left: 1px solid #e2e8f0; 
+			display: flex; 
+			flex-direction: column; 
+			height: 100vh; /* لازم نثبت الطول بطول الشاشة */
+			overflow: hidden; /* نمنع السكرول الخارجي */
+		}
+
+		.sidebar-header { 
+			padding: 1.2rem; 
+			background: var(--primary); 
+			color: white; 
+			font-weight: 700; 
+			text-align: center;
+			flex-shrink: 0; /* نمنع الهيدر إنه ينضغط */
+		}
+
+		.nav-scroll { 
+			flex: 1; 
+			overflow-y: auto !important; /* تفعيل السكرول الطولي */
+			padding: 1rem;
+			scrollbar-width: thin; /* شكل سكرول شيك في فايرفوكس */
+			scrollbar-color: var(--primary) transparent;
+		}
+
+		/* شكل السكرول بار في جوجل كروم (Webkit) */
+		.nav-scroll::-webkit-scrollbar {
+			width: 6px;
+		}
+		.nav-scroll::-webkit-scrollbar-thumb {
+			background-color: var(--primary);
+			border-radius: 10px;
+		}
+		.nav-scroll::-webkit-scrollbar-track {
+			background: transparent;
+		}
+
+		.nav-grid { 
+			display: grid; 
+			grid-template-columns: repeat(4, 1fr); 
+			gap: 0.5rem;
+			padding-bottom: 20px; /* مساحة تحت آخر سؤال */
+		}
+        .q-dot {
+            aspect-ratio: 1; border: 1px solid #cbd5e1; border-radius: 0.5rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: 500; background: #fff;
+        }
+        .q-dot.active { border: 2px solid var(--primary); color: var(--primary); background: #eff6ff; }
+        .q-dot.correct { background: var(--success) !important; color: white; border: none; }
+        .q-dot.wrong { background: var(--error) !important; color: white; border: none; }
+
+        .timer-box {
+            background: #fee2e2; color: #dc2626; padding: 10px 20px;
+            border-radius: 50px; font-weight: 800; font-size: 1.2rem;
+            margin-bottom: 1.5rem; border: 2px solid #fecaca;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; max-width: 300px;
+        }
+
+        .content { flex: 1; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; }
+        .quiz-container { width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; }
+        
+        .question-card {
+            background: white; border-radius: 1.25rem; padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem; width: 100%;
+        }
+        .q-type-badge { display: inline-block; padding: 4px 12px; background: #dbeafe; color: var(--primary); border-radius: 20px; font-size: 0.8rem; margin-bottom: 1rem; }
+        .q-text { font-size: 1.3rem; font-weight: 700; line-height: 1.5; margin-bottom: 2rem; }
+
+        .options-list { display: grid; gap: 0.75rem; }
+        .opt-btn {
+            width: 100%; padding: 1rem 1.5rem; text-align: right; border: 2px solid #f1f5f9;
+            border-radius: 0.75rem; background: #fff; cursor: pointer; font-size: 1rem;
+        }
+        .opt-btn.correct { background: #dcfce7 !important; border-color: var(--success) !important; color: #065f46; font-weight: bold; }
+        .opt-btn.wrong { background: #fee2e2 !important; border-color: var(--error) !important; color: #991b1b; }
+
+        .action-btn { width: 100%; padding: 1rem; background: var(--primary); color: white; border: none; border-radius: 0.75rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+        .action-btn:disabled { background: #cbd5e1; cursor: not-allowed; opacity: 0.7; }
+
+	/* ========================================= */
+    /* التنسيق النهائي والمضمون للموبايل */
+    /* ========================================= */
+    @media (max-width: 768px) {
+        body { 
+            overflow-y: auto !important; 
+            height: auto !important; 
+        }
+
+        #main-app { 
+            display: flex !important; 
+            flex-direction: column !important; /* ترتيب عمودي إجباري */
+            height: auto !important;
+            grid-template-columns: 1fr !important; /* إلغاء نظام الأعمدة */
+        }
+
+        /* 1. منطقة الأسئلة (تظهر أولاً) */
+        .content { 
+            order: 1 !important; 
+            width: 100% !important;
+            padding: 1rem !important;
+            flex: none !important;
+        }
+
+        /* 2. منطقة خريطة الأسئلة (تظهر ثانياً تحت الأسئلة) */
+        .sidebar { 
+            order: 2 !important; 
+            width: 100% !important; 
+            border-left: none !important; 
+            background: transparent !important; 
+            padding: 1rem !important;
+            display: block !important;
+            height: auto !important;
+        }
+
+        .nav-scroll { 
+            background: #ffffff !important; 
+            border-radius: 1.5rem !important; 
+            padding: 1.5rem !important; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+
+        .sidebar-header { 
+            background: none !important; 
+            color: var(--primary) !important; 
+            text-align: center !important; 
+            padding: 0 0 1rem 0 !important; 
+            font-size: 1.2rem !important;
+            display: block !important;
+        }
+
+        .nav-grid { 
+            display: grid !important; 
+            grid-template-columns: repeat(5, 1fr) !important; /* 5 مربعات في الصف */
+            gap: 10px !important; 
+        }
+
+        .q-dot { 
+            width: 100% !important; 
+            aspect-ratio: 1 !important; 
+            font-size: 1rem !important; 
+            border-radius: 0.75rem !important; 
+        }
+
+        .timer-box { 
+            width: 100% !important; 
+            max-width: none !important;
+        }
+
+        .quiz-container {
+            max-width: 100% !important;
+        }
+    }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-card">
+        <h2 style="color: var(--primary); margin-top: 0;">امتحان تقييم معرفـى</h2>
+        <input type="text" id="user-name" placeholder="أدخل اسمك الثلاثي" onkeypress="if(event.key === 'Enter') initQuiz();">
+        <button class="action-btn" onclick="initQuiz()">ابدأ الآن</button>
+    </div>
+</div>
+
+<div id="main-app">
+    <div class="sidebar">
+        <div class="sidebar-header">خريطة الأسئلة</div>
+        <div class="nav-scroll"><div id="nav-grid" class="nav-grid"></div></div>
+    </div>
+
+    <div class="content">
+        <div id="quiz-ui" class="quiz-container">
+            <div class="timer-box">
+                <span> المتبقي:</span>
+                <span id="timer-display">99999:00</span>
+            </div>
+            <div class="question-card">
+                <span id="q-type" class="q-type-badge"></span>
+                <div id="q-text" class="q-text"></div>
+                <div id="options-area" class="options-list"></div>
+            </div>
+            <button id="next-btn" class="action-btn" disabled onclick="handleNext()">السؤال التالي</button>
+            <p id="alert-msg" style="color: #64748b; font-size: 0.85rem; margin-top: 10px; display: none;">⚠️ يجب الإجابة على جميع الأسئلة لتتمكن من الإنهاء.</p>
+        </div>
+
+        <div id="result-screen" class="question-card" style="display:none; text-align:center; padding:3rem;">
+            <h2>انتهى الاختبار!</h2>
+            <p id="student-display"></p>
+            <div class="score-box" id="final-percent" style="font-size:4rem; color:var(--primary); font-weight:800;">0%</div>
+            <p id="status-msg">جاري حفظ النتيجة...</p>
+            <button class="action-btn" onclick="location.reload()">إعادة المحاولة</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 1. التفتيش أول ما الصفحة تفتح (قبل أي حاجة)
+//window.onload = function() {
+//  if (localStorage.getItem("exam_finished") === "true") {
+//    document.body.innerHTML = `
+//      <div style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; font-family:Tajawal; text-align:center; padding:20px; background:#f8fafc;">
+//        <div style="background:white; padding:2rem; border-radius:1.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.1); border-top:5px solid #dc2626;">
+//               <h1 style="color:#dc2626; margin-bottom:10px;">⚠️ غير مسموح بالدخول</h1>
+//               <p style="font-size:1.2rem; color:#1e293b;">لقد قمت بتأدية هذا الاختبار مسبقاً من هذا الجهاز.</p>
+//               <hr style="border:0; border-top:1px solid #e2e8f0; margin:20px 0;">
+//                <b style="color:#2563eb; font-size:1.3rem;">مستر / محمد سمير زكي</b>
+//            </div>
+//        </div>`;
+// }
+//};
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaXF2rC8IXI8z6KJpjTJ7QhpigFInWxZYZvR4n89HmJzUV3M-XO8GOWsvRJCePItIc/exec";
+const EXAM_DURATION_MINUTES = 99999;
+const CURRENT_EXAM_NAME = "فيزياء عامة";
+const questions = [
+    // --- أسئلة الاختيار من متعدد ---
+    {cat: "اختيار من متعدد", q: "ما هي وحدة قياس المقاومة الكهربائية؟", o: ["الفاراد (F)", "الأوم", "الأمبير (A)"], c: "الأوم"},
+    {cat: "اختيار من متعدد", q: "أي نوع من المكبرات يستخدم عادة في أنظمة الصوت ذات القدرة العالية؟", o: ["مكبر الجهد", "مكبر القدرة", "مكبر التردد المنخفض"], c: "مكبر القدرة"},
+    {cat: "اختيار من متعدد", q: "ما هي التقنية المستخدمة في التلفزيون الرقمي لنقل الإشارات؟", o: ["التناظرية", "الرقمية", "البلازما"], c: "الرقمية"},
+    {cat: "اختيار من متعدد", q: "أي نوع من LNB يدعم نطاقي KU-BAND و C-BAND ؟", o: ["Universal LNB", "Wide KU-BAND", "C-BAND"], c: "Universal LNB"},
+    {cat: "اختيار من متعدد", q: "أي من التالي يستخدم لقياس درجة حرارة الأسطوانة الحرارية؟", o: ["الثيرموستور", "الكارونة", "الحساس الضوئي", "الفيوز الحراري"], c: "الثيرموستور"},
+    {cat: "اختيار من متعدد", q: "أي من الأنظمة العددية التالية يستخدم الحروف A-F لتمثيل القيم؟", o: ["النظام العشري", "النظام السداسي عشر", "النظام الثنائي"], c: "النظام السداسي عشر"},
+    {cat: "اختيار من متعدد", q: "ما وظيفة المقاومة في دائرة LED مع الأردوينو ؟", o: ["زيادة سطوع LED", "حماية LED من التيار العالي", "تغيير لون الضوء", "تقليل استهلاك الطاقة"], c: "حماية LED من التيار العالي"},
+    {cat: "اختيار من متعدد", q: "ما هي التقنية التي تعتمد عليها شاشات LCD ؟", o: ["البلورات السائلة", "غاز البلازما", "أنابيب أشعة الكاثود"], c: "البلورات السائلة"},
+    {cat: "اختيار من متعدد", q: "ما سبب ظهور رسالة 'لا يمكن الاتصال بالشبكة'؟", o: ["تلف الشاشة", "عطل في الـ Firmware", "انخفاض جهد البطارية", "تلف السماعة"], c: "عطل في الـ Firmware"},
+    {cat: "اختيار من متعدد", q: "أي من التالي يعد عطلاً شائعاً في وحدة تغذية الورق؟", o: ["ظهور خطوط سوداء", "انحراف الورقة", "صورة باهتة", "كود E000000"], c: "انحراف الورقة"},
+    {cat: "اختيار من متعدد", q: "أي من البوابات المنطقية تعطي خرجاً يساوي 1 عندما يكون كلا المدخلين 1؟", o: ["OR", "AND", "NOT"], c: "AND"},
+    {cat: "اختيار من متعدد", q: "ما هو الهدف الأساسي من استخدام مكبرات الفئة C ؟", o: ["تكبير الترددات السمعية", "تقليل التشوش", "تكبير الترددات الراديوية"], c: "تكبير الترددات الراديوية"},
+    {cat: "اختيار من متعدد", q: "ما هي المادة المستخدمة في طابعات النفث الحبر إنشاء الفقاعات؟", o: ["الماء", "الحبر السائل", "الحرارة"], c: "الحرارة"},
+    {cat: "اختيار من متعدد", q: "أي من هذه المواد يستخدم في صناعة الطبق لزيادة كفاءة العكس؟", o: ["البلاستيك", "الألومنيوم", "الخشب"], c: "الألومنيوم"},
+    {cat: "اختيار من متعدد", q: "عند توصيل المقاومات على التوالي، يكون التيار الكهربائي", o: ["متغيراً بين المقاومات", "ثابتاً في جميع المقاومات", "يساوي صفراً"], c: "ثابتاً في جميع المقاومات"},
+    {cat: "اختيار من متعدد", q: "لماذا يستخدم الـ Relay Module مع الأردوينو ؟", o: ["زيادة سرعة المعالج", "للتحكم في أجهزة تعمل بجهد عالي", "لتحسين استهلاك الطاقة", "لتخزين البيانات"], c: "للتحكم في أجهزة تعمل بجهد عالي"},
+    {cat: "اختيار من متعدد", q: "ما هي الوحدة المسؤولة عن تسخين الحبر في طابعات الليزر ؟", o: ["وحدة الليزر", "وحدة الصهر (Fuser)", "وحدة الجهد العالي", "وحدة التغذية"], c: "وحدة الصهر (Fuser)"},
+    {cat: "اختيار من متعدد", q: "ما الوظيفة الرئيسية للـ Developer ؟", o: ["تسخين الحبر", "جذب بودرة التوتر إلى الدرام", "فصل الشحنات الكهربائية"], c: "جذب بودرة التوتر إلى الدرام"},
+    {cat: "اختيار من متعدد", q: "ما هي الميزة الرئيسية للتلفزيون الرقمي مقارنة بالتلفزيون التناظري؟", o: ["جودة صورة أفضل", "استهلاك أقل للنطاق الترددي", "مقاومة أكبر للتشويش", "جميع ما سبق"], c: "جميع ما سبق"},
+    {cat: "اختيار من متعدد", q: "أي من هذه المكونات يُستخدم في الدوائر الإلكترونية كمفتاح كهربائي؟", o: ["المكثف", "المقاومة", "الترانزستور"], c: "الترانزستور"},
+    {cat: "اختيار من متعدد", q: "أي من التالي يستخدم لتكرار الأوامر عدداً محدداً من المرات؟", o: ["if", "for", "while", "switch"], c: "for"},
+    {cat: "اختيار من متعدد", q: "ما الوظيفة الرئيسية لـ Power IC ؟", o: ["إدارة الشاشة", "توليد جهود التغذية", "تحويل الجهد", "إرسال البيانات"], c: "توليد جهود التغذية"},
+    {cat: "اختيار من متعدد", q: "أي جيل من الاتصالات قدم خدمة الإنترنت عالي السرعة لأول مرة؟", o: ["2G", "3G", "4G", "5G"], c: "3G"},
+    {cat: "اختيار من متعدد", q: "الثايرستور يشبه الترانزستور لكنه يحتوي على:", o: ["طرفين", "ثلاثة أطراف", "أربعة أطراف"], c: "أربعة أطراف"},
+    {cat: "اختيار من متعدد", q: "يتم تخزين البيانات المؤقتة أثناء تنفيذ البرنامج في أي نوع من الذاكرة؟", o: ["RAM", "ROM", "FLASH"], c: "RAM"},
+    {cat: "اختيار من متعدد", q: "ما سبب ظهور كود SC542 في آلات Ricoh ؟", o: ["مشكلة في وحدة التثبيت", "نفاد الحبر", "عطل في المحرك الرئيسي", "انسداد الورق"], c: "مشكلة في وحدة التثبيت"},
+    {cat: "اختيار من متعدد", q: "أي من هذه الموجات تستخدم في نظام GSM ؟", o: ["الموجات الأرضية", "الموجات الفضائية", "الموجات الصوتية", "الموجات المغناطيسية"], c: "الموجات المغناطيسية"},
+    {cat: "اختيار من متعدد", q: "يستخدم المحول الكهربائي في:", o: ["رفع أو خفض الجهد الكهربائي", "تخزين الشحنات الكهربائية", "منع مرور التيار"], c: "رفع أو خفض الجهد الكهربائي"},
+    {cat: "اختيار من متعدد", q: "أي من البرامج التالية يُستخدم لمحاكاة عمل المتحكمات الدقيقة؟", o: ["Photoshop", "Proteus", "Excel"], c: "Proteus"},
+    {cat: "اختيار من متعدد", q: "ما دور الـ Flash ROM في الهاتف؟", o: ["تخزين نظام التشغيل", "إدارة البطارية", "تشغيل الكاميرا", "التحكم في الصوت"], c: "تخزين نظام التشغيل"},
+    {cat: "اختيار من متعدد", q: "ما هي الوحدة المسؤولة عن سحب الورق في طابعات الليزر؟", o: ["وحدة الليزر", "وحدة الصهر (Fuser)", "وحدة التغذية", "وحدة النقل"], c: "وحدة التغذية"},
+    {cat: "اختيار من متعدد", q: "ما هي المشكلة الشائعة في شاشات البلازما؟", o: ["الاحتراق (Burn-in)", "سماكة كبيرة", "استهلاك عالي للطاقة", "جميع ما سبق"], c: "جميع ما سبق"},
+    {cat: "اختيار من متعدد", q: "ما الوظيفة الرئيسية للوحة الأم (Motherboard) ؟", o: ["تخزين البيانات", "ربط جميع مكونات الحاسب معاً", "تشغيل نظام التشغيل", "تحويل الطاقة الكهربائية"], c: "ربط جميع مكونات الحاسب معاً"},
+    {cat: "اختيار من متعدد", q: "أي مكون مسؤول عن تحويل الإشارة الرقمية إلى تماثلية؟", o: ["MPEG decoder", "RF modulator", "DAC", "Tuner"], c: "DAC"},
+    {cat: "اختيار من متعدد", q: "ما السبب المحتمل لظهور أرضية سوداء على الصورة؟", o: ["تلف الدرام", "انخفاض الشحن", "عدم حركة الدرام", "تلف شفرة التنظيف"], c: "انخفاض الشحن"},
+    {cat: "اختيار من متعدد", q: "أي من هذه التقنيات تستخدم في تحديد الموقع الجغرافي؟", o: ["Bluetooth", "GPS", "NFC", "Wi-Fi"], c: "GPS"},
+    {cat: "اختيار من متعدد", q: "أي من الأنظمة العددية التالية يستخدم القاعدة 2؟", o: ["النظام الثماني", "النظام العشري", "النظام الثنائي"], c: "النظام الثنائي"},
+    {cat: "اختيار من متعدد", q: "ما هي المكونات التي تحتاج إلى مصدر جهد خارجي لتعمل؟", o: ["المكونات السلبية (Passive)", "المكونات النشطة (Active)", "المقاومات", "المكثفات"], c: "المكونات النشطة (Active)"},
+    {cat: "اختيار من متعدد", q: "ما الغرض من استخدام الفوتوكوبلر (PC817) في دائرة الباور؟", o: ["تنظيم الجهد", "عزل الدوائر", "تحسين الإشارة", "تخزين البيانات"], c: "عزل الدوائر"},
+    {cat: "اختيار من متعدد", q: "أي من التالي يُعتبر من قطع الغيار المستهلكة؟", o: ["الدرام", "لوحة التحكم", "المحرك الرئيسي", "الكارونة"], c: "الدرام"},
+    {cat: "اختيار من متعدد", q: "ما الوظيفة الأساسية للـ Duplexer ؟", o: ["فصل الإرسال والاستقبال", "تحويل الصوت", "إدارة الطاقة", "تشغيل الكاميرا"], c: "فصل الإرسال والاستقبال"},
+    {cat: "اختيار من متعدد", q: "المقاومة الحرارية تتغير مقاومتها حسب", o: ["التردد", "درجة الحرارة", "الجهد الكهربائي"], c: "درجة الحرارة"},
+    {cat: "اختيار من متعدد", q: "أي من أنواع الذاكرة التالية تستخدم لتخزين البرنامج داخل المتحكم الدقيق؟", o: ["RAM", "EEPROM", "FLASH"], c: "EEPROM"},
+    {cat: "اختيار من متعدد", q: "أي من هذه المكونات يستخدم لقياس الضغط الجوي ؟", o: ["الجيروسكوب", "حساس الإضاءة", "الباروميتر", "الميكروفون"], c: "الباروميتر"},
+    {cat: "اختيار من متعدد", q: "ما الغرض من استخدام Hot Air في الصيانة؟", o: ["تنظيف الهاتف", "تسخين المكونات لفكها", "شحن البطارية", "تعديل البرامج"], c: "تسخين المكونات لفكها"},
+    {cat: "اختيار من متعدد", q: "ما الوظيفة الأساسية لمفتاح Interrupt Key ؟", o: ["إيقاف الآلة", "مقاطعة التصوير لنسخ ورقة معينة", "ضبط الإضاءة", "تشغيل الفارز"], c: "مقاطعة التصوير لنسخ ورقة معينة"},
+    {cat: "اختيار من متعدد", q: "ما هو النظام العددي المستخدم في كتابة عناوين الذاكرة في الحواسيب؟", o: ["العشري", "الثنائي", "السداسي عشر"], c: "السداسي عشر"},
+    {cat: "اختيار من متعدد", q: "ما هو العطل الذي يحدث عندما تكون الدائرة غير مكتملة؟", o: ["حالة القصر", "الدائرة المفتوحة", "التأريض", "الأعطال الميكانيكية"], c: "الدائرة المفتوحة"},
+    {cat: "اختيار من متعدد", q: "ما الغرض الرئيسي لعطل الـ Flash memory ؟", o: ["تشويش الصوت", "عدم تشغيل الجهاز بعد التحديث", "فقدان الإشارة", "ارتفاع حرارة الجهاز"], c: "عدم تشغيل الجهاز بعد التحديث"},
+    {cat: "اختيار من متعدد", q: "ما الغرض من استخدام زيت السيليكون في وحدة التثبيت؟", o: ["زيادة سرعة الطباعة", "منع التصاق الورق بالأسطوانة", "تحسين جودة الصورة", "توفير الطاقة"], c: "منع التصاق الورق بالأسطوانة"},
+    {cat: "اختيار من متعدد", q: "أي من هذه الخطوات ضرورية قبل تحديث برنامج الرسيفر ؟", o: ["توصيل الجهاز بالإنترنت", "إغلاق الجهاز", "زيادة جهد الباور", "إزالة الهوائي"], c: "توصيل الجهاز بالإنترنت"},
+
+    // --- أسئلة صواب وخطأ ---
+    {cat: "صواب وخطأ", q: "الترانزستور لا يمكن استخدامه كمفتاح إلكتروني.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "مكبرات الفئة A تكبر الموجة بالكامل دون أي تشويه.", c: "صح"},
+    {cat: "صواب وخطأ", q: "التلفزيون الرقمي يستخدم تقنية التناظرية لنقل الإشارات.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "آلات التصوير الرقمية تستخدم ماسحاً ضوئياً لتحويل الصورة إلى بيانات رقمية.", c: "صح"},
+    {cat: "صواب وخطأ", q: "طابعات الليزر يمكنها الطباعة على الوجهين تلقائياً.", c: "صح"},
+    {cat: "صواب وخطأ", q: "المقاومة الضوئية (LDR) تقل قيمتها عند تعرضها للضوء.", c: "صح"},
+    {cat: "صواب وخطأ", q: "يمكن استخدام مكبرات الفئة AB في أنظمة الصوت ذات القدرة العالية.", c: "صح"},
+    {cat: "صواب وخطأ", q: "التلفزيون الذكي (Smart TV) يمكنه الاتصال بالإنترنت وتشغيل التطبيقات.", c: "صح"},
+    {cat: "صواب وخطأ", q: "خاصية الفرز (Sorting) تستخدم لدببيس الأوراق بعد التصوير.", c: "صح"},
+    {cat: "صواب وخطأ", q: "طابعات الليزر تستخدم شعاع الليزر لتشكيل الصورة على الأسطوانة.", c: "صح"},
+    {cat: "صواب وخطأ", q: "مصدر التيار المتردد (AC) يمكن الحصول عليه من البطاريات.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "التغذية الخلفية السالبة في المكبرات تؤدي إلى تقليل الضوضاء والتشوه.", c: "صح"},
+    {cat: "صواب وخطأ", q: "شاشات LCD تعتمد على البلورات السائلة لتوليد الصورة.", c: "صح"},
+    {cat: "صواب وخطأ", q: "وحدة التثبيت (Fuser Unit) تعمل على تسخين بودرة التوتر إلى درجة حرارة تتراوح بين 120 - 200 درجة مئوية.", c: "صح"},
+    {cat: "صواب وخطأ", q: "طابعات الليزر لا تحتاج إلى ذاكرة داخلية لتخزين الصفحات قبل الطباعة.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "المكثفات تعمل على تخزين الطاقة الكهربائية وتفريغها عند الحاجة.", c: "صح"},
+    {cat: "صواب وخطأ", q: "يتم استخدام الأمر digitalRead() لقراءة الإشارة التماثلية.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "شاشات CRT تعتمد على أنابيب أشعة الكاثود لتوليد الصورة.", c: "صح"},
+    {cat: "صواب وخطأ", q: "المحرك الرئيسي في آلة التصوير مسؤول عن تحريك الماسحة الضوئية.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "طابعات النقطية (Dot Matrix) تستخدم إبرة لضرب الشريط الحبري.", c: "صح"},
+    {cat: "صواب وخطأ", q: "وحدة قياس القدرة الكهربائية هي الوات.", c: "صح"},
+    {cat: "صواب وخطأ", q: "الترانزستور في مكبر المشترك المشترك يُستخدم لتكبير التيار فقط.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "شاشات OLED لا تحتاج إلى إضاءة خلفية لأن كل بكسل ينتج ضوءه الخاص.", c: "صح"},
+    {cat: "صواب وخطأ", q: "الكارونة (Corona Unit) مسؤولة عن فصل الشحنات الكهربائية على الورق بعد الطباعة.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "طابعات النفث الحبر (Inkjet) تعتمد على تسخين الحبر لإنشاء الفقاعات.", c: "صح"},
+    {cat: "صواب وخطأ", q: "الوات ساعة هي وحدة قياس الطاقة الكهربية.", c: "صح"},
+    {cat: "صواب وخطأ", q: "الذاكرة EEPROM تفقد بياناتها عند انقطاع التيار الكهربائي.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "شاشات البلازما تعتمد على غاز البلازما لتوليد الضوء.", c: "صح"},
+    {cat: "صواب وخطأ", q: "عملية التكبير Zoom In تعتمد على تحريك العدسة بعيداً عن المستند.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "الجهد الرئيسي للبطارية يُرمز له بـ V-Bus.", c: "صح"},
+    {cat: "صواب وخطأ", q: "الثنائي (Diode) يسمح بمرور التيار الكهربائي في اتجاه واحد فقط.", c: "صح"},
+    {cat: "صواب وخطأ", q: "نظام التشغيل (Operating System) هو المسؤول عن تشغيل التطبيقات على الحاسب.", c: "صح"},
+    {cat: "صواب وخطأ", q: "شاشات OLED تعاني من مشكلة الاحتراق (Burn-in) أكثر من شاشات أخرى.", c: "صح"},
+    {cat: "صواب وخطأ", q: "أحد أعطال وحدة الدرام هو ظهور صورة بيضاء تماماً بسبب تلف شريط تجميع الحبر.", c: "صح"},
+    {cat: "صواب وخطأ", q: "طابعات النفث الحبر تستخدم خراطيش حبر منفصلة لكل لون.", c: "صح"},
+    {cat: "صواب وخطأ", q: "الأخطاء العشوائية يمكن تصحيحها بسهولة مثل الأخطاء النظامية.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "يتم تخزين البرنامج داخل المتحكم الدقيق في ذاكرة RAM.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "التلفزيون التناظري يعتبر أكثر كفاءة في استخدام النطاق الترددي مقارنة بالتلفزيون الرقمي.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "الـ Developer عبارة عن حبيبات حديدية ممغنطة.", c: "صح"},
+    {cat: "صواب وخطأ", q: "وحدة الـ RF مسؤولة عن تحويل الإشارات الرقمية إلى تناظرية.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "المتحكم الدقيق يحتوي فقط على وحدة معالجة مركزية دون ذاكرة.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "كود العطل E000000 يشير إلى مشكلة في وحدة التثبيت.", c: "صح"},
+    {cat: "صواب وخطأ", q: "وحدة المعالجة المركزية (CPU) تتحكم في جميع عمليات الهاتف.", c: "صح"},
+    {cat: "صواب وخطأ", q: "جهاز الأوسيلوسكوب يستخدم لقياس شدة الإضاءة.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "تستخدم لغة Python بشكل أساسي لبرمجة المتحكمات الدقيقة.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "الـ ADF وحدة التغذية التلقائية تستخدم لتصوير الوجهين.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "تقنية الـ NFC تستخدم لنقل البيانات على مسافات قريبة.", c: "صح"},
+    {cat: "صواب وخطأ", q: "المحول الكهربائي يعمل على تحويل التيار المستمر إلى تيار متردد.", c: "خطأ"},
+    {cat: "صواب وخطأ", q: "يتم استخدام الأمر Serial.begin(9600) لبدء الاتصال التسلسلي مع الأردوينو.", c: "صح"},
+    {cat: "صواب وخطأ", q: "شاشات OLED توفر تباينًا أعلى من شاشات LCD.", c: "صح"},
+    {cat: "صواب وخطأ", q: "الثيرموفيوز (Thermo Fuse) ينصهر إذا تجاوزت الحرارة الحد المسموح به.", c: "صح"}
+];
+
+let quizData = [], currentStep = 0, userScore = 0, answersLog = [], studentName = "";
+let timeLeft = EXAM_DURATION_MINUTES * 60;
+let timerInterval;
+
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function startTimer() {
+    const display = document.getElementById('timer-display');
+    timerInterval = setInterval(() => {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        display.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            alert("⚠️ انتهى الوقت! يتم الآن إرسال إجاباتك أوتوماتيكياً.");
+            finishQuiz(true); // تمرير true ليعرف السيستم أنه إنهاء إجباري بسبب الوقت
+        }
+        timeLeft--;
+    }, 1000);
+}
+
+function initQuiz() {
+    studentName = document.getElementById('user-name').value.trim();
+    if(studentName.length < 3) return alert("يرجى كتابة الاسم الثلاثي");
+  //  quizData = shuffleArray([...rawQuestions]);
+  quizData = [...questions];
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'grid';
+    renderNav();
+    loadQuestion();
+    startTimer();
+}
+
+function renderNav() {
+    const grid = document.getElementById('nav-grid');
+    grid.innerHTML = quizData.map((_, i) => `<div class="q-dot" id="dot-${i}" onclick="jumpTo(${i})">${i + 1}</div>`).join('');
+}
+
+function loadQuestion() {
+    const data = quizData[currentStep];
+    document.getElementById('q-type').innerText = data.cat || "سؤال"; 
+    document.getElementById('q-text').innerText = data.q;
+    const area = document.getElementById('options-area');
+    area.innerHTML = "";
+    
+    const hasAnswered = answersLog[currentStep] !== undefined;
+    const isLast = currentStep === quizData.length - 1;
+    const totalAnswered = answersLog.filter(x => x !== undefined).length;
+    const allDone = totalAnswered === quizData.length;
+
+    // تحديث زر التالي/إنهاء
+    const nextBtn = document.getElementById('next-btn');
+    const alertMsg = document.getElementById('alert-msg');
+
+    if (isLast) {
+        nextBtn.innerText = "إنهاء الاختبار";
+        nextBtn.disabled = !allDone; // لا يعمل إلا إذا تم حل الكل
+        alertMsg.style.display = allDone ? "none" : "block";
+    } else {
+        nextBtn.innerText = "السؤال التالي";
+        nextBtn.disabled = !hasAnswered;
+        alertMsg.style.display = "none";
+    }
+
+ //   if (!data.shuffledOptions) data.shuffledOptions = shuffleArray([...data.o]);
+ if (!data.shuffledOptions) data.shuffledOptions = data.o ? [...data.o] : ["صح", "خطأ"];
+    data.shuffledOptions.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn';
+        btn.innerText = opt;
+        if (hasAnswered) {
+            btn.disabled = true;
+            if (opt === data.c) btn.classList.add('correct');
+            if (opt === answersLog[currentStep].selected && opt !== data.c) btn.classList.add('wrong');
+        } else {
+            btn.onclick = () => selectOption(opt);
+        }
+        area.appendChild(btn);
+    });
+
+    document.querySelectorAll('.q-dot').forEach(d => d.classList.remove('active'));
+    document.getElementById(`dot-${currentStep}`).classList.add('active');
+}
+
+function selectOption(val) {
+    if(answersLog[currentStep] !== undefined) return;
+    const isCorrect = val === quizData[currentStep].c;
+    if(isCorrect) userScore++;
+    answersLog[currentStep] = { selected: val, isCorrect: isCorrect };
+    document.getElementById(`dot-${currentStep}`).classList.add(isCorrect ? 'correct' : 'wrong');
+    loadQuestion(); 
+}
+
+function handleNext() {
+    if(currentStep < quizData.length - 1) {
+        currentStep++; loadQuestion();
+    } else {
+        finishQuiz(false);
+    }
+}
+
+function jumpTo(i) { currentStep = i; loadQuestion(); }
+
+// --- 1. الدالة المصلحة لإرسال البيانات ---
+function saveResultToSheet(name, score) {
+    const numericScore = parseInt(score);
+    const status = numericScore >= 50 ? "ناجح" : "راسب";
+    const timestamp = new Date().toLocaleString('ar-EG');
+
+    // استخدام FormData هو الطريقة "الرسمية" والأسرع لإرسال البيانات للخلفية
+    const blobData = new FormData();
+    blobData.append('name', name);
+    blobData.append('score', numericScore);
+    blobData.append('examName', CURRENT_EXAM_NAME);
+    blobData.append('status', status);
+    blobData.append('time', timestamp);
+
+    // تحويل FormData إلى Blob لجعلها متوافقة تماماً مع sendBeacon وبدون تأخير
+    const blob = new Blob([new URLSearchParams(blobData).toString()], {
+        type: 'application/x-www-form-urlencoded'
+    });
+
+    // إرسال لحظي في الخلفية (حتى لو قفل الطالب الصفحة النتيجة هتوصل)
+    navigator.sendBeacon(SCRIPT_URL, blob);
+
+    // إظهار الرسالة للطالب فوراً بدون انتظار رد السيرفر
+    const statusMsg = document.getElementById('status-msg');
+    if (statusMsg) {
+        statusMsg.innerText = `✅ تم تسجيل درجتك في كشف (${CURRENT_EXAM_NAME})`;
+        statusMsg.style.color = "var(--success)";
+    }
+}
+// --- 2. الدالة المصلحة لإنهاء الاختبار ---
+function finishQuiz(isForce) {
+    if(!isForce && answersLog.filter(x => x !== undefined).length < quizData.length) {
+        alert("يرجى الإجابة على جميع الأسئلة أولاً!");
+        return;
+    }
+
+    //localStorage.setItem("exam_finished", "true");
+    clearInterval(timerInterval);
+    
+    document.getElementById('quiz-ui').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
+    
+    const percent = Math.round((userScore / quizData.length) * 100);
+    document.getElementById('final-percent').innerText = percent + "%";
+    document.getElementById('student-display').innerText = `الطالب: ${studentName}`;
+    
+    // استدعاء الدالة بشكل صحيح بالاسم والدرجة فقط
+    saveResultToSheet(studentName, percent);
+}
+</script>
+</body>
+</html>
